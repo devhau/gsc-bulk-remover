@@ -1,11 +1,15 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
-  "display": "ESLint",
-  "extends": "./packages/tsconfig/base.json",
-  "compilerOptions": {
-    "noImplicitAny": false,
-    "noEmit": false,
-    "target": "ESNext"
-  },
-  "include": ["eslint.config.ts"]
+    "compilerOptions": {
+        "strict": true,
+        "target": "es6",
+        "moduleResolution": "bundler",
+        "module": "ES6",
+        "esModuleInterop": true,
+        "sourceMap": false,
+        "rootDir": "src",
+        "outDir": "dist/js",
+        "noEmitOnError": true,
+        "jsx": "react",
+        "typeRoots": [ "node_modules/@types" ]
+    }
 }
