@@ -1,0 +1,10 @@
+addReviewers: true
+
+reviewers:
+  - devhau
+
+addAssignees: author
+
+filterLabels:
+  exclude:
+    - dependencies
