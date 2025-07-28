@@ -8,13 +8,12 @@ const Popup = () => {
   const [chunkSize, setChunkSize] = useState(100);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleStart = () => {
-    if (!links.trim()) {
-      alert("Please enter URLs to remove");
+  const handleStart = async () => {
+    if (isProcessing) {
       return;
     }
     
-    const urlList = links.split('\n').filter(url => url.trim());
+    const urlList = links.split('\n').filter(url => url.trim().split(',')[0]);
     if (urlList.length === 0) {
       alert("Please enter valid URLs");
       return;
@@ -25,15 +24,112 @@ const Popup = () => {
       return;
     }
     
+    // Validate URLs
+    const validUrls = urlList.filter(url => url.startsWith('http'));
+    if (validUrls.length === 0) {
+      alert("Please enter valid URLs starting with http:// or https://");
+      return;
+    }
+    
     setIsProcessing(true);
-    // TODO: Implement bulk removal logic
-    console.log("Starting bulk removal:", { urlList, waitTime, chunkSize });
+    
+    try {
+      // Store configuration in Chrome storage
+      await new Promise<void>((resolve) => {
+        chrome.storage.local.set({
+          URLs: validUrls.join('\n'),
+          waitTime: waitTime,
+          chunkSize: chunkSize,
+          downloadCheckbox: false, // Can be made configurable later
+          temporaryRemoval: true, // Can be made configurable later
+          currentChunkIndex: 0,
+          totalChunks: Math.ceil(validUrls.length / chunkSize),
+          submittedLinksAll: [],
+          failedLinksAll: [],
+          totalURLCount: validUrls.length,
+          processedURLCount: 0,
+          stopRequested: false,
+          isProcessing: true,
+          lastUpdateTime: Date.now()
+        }, () => {
+          resolve();
+        });
+      });
+      
+      // Get current active tab
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (!tab.id) {
+        throw new Error('No active tab found');
+      }
+      
+      // Check if we're on Google Search Console
+      if (!tab.url?.includes('search.google.com')) {
+        alert('Please navigate to Google Search Console first');
+        setIsProcessing(false);
+        return;
+      }
+      
+      // Send message to content script to start processing
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'startProcessing',
+        data: {
+          urls: validUrls,
+          waitTime: waitTime,
+          chunkSize: chunkSize
+        }
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Error sending message:', chrome.runtime.lastError);
+          alert('Error starting process. Please refresh the page and try again.');
+          setIsProcessing(false);
+        } else {
+          console.log('Process started successfully:', response);
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error starting process:', error);
+      alert('Error starting process. Please try again.');
+      setIsProcessing(false);
+    }
   };
 
-  const handleStop = () => {
-    setIsProcessing(false);
-    // TODO: Implement stop logic
-    console.log("Stopping process");
+  const handleStop = async () => {
+    try {
+      // Set stop flag in storage
+      await new Promise<void>((resolve) => {
+        chrome.storage.local.set({ 
+          stopRequested: true,
+          isProcessing: false 
+        }, () => {
+          resolve();
+        });
+      });
+      
+      // Get current active tab
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (tab.id) {
+        // Send stop message to content script
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'stopProcessing'
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('Error sending stop message:', chrome.runtime.lastError);
+          } else {
+            console.log('Stop message sent:', response);
+          }
+        });
+      }
+      
+      setIsProcessing(false);
+      console.log('Process stopped');
+      
+    } catch (error) {
+      console.error('Error stopping process:', error);
+      setIsProcessing(false);
+    }
   };
 
   return (
