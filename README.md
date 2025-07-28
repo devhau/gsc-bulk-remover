@@ -1,11 +1,5 @@
 <div align="center">
 
-<picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/99cb6303-64e4-4bed-bf3f-35735353e6de" />
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/a5dbf71c-c509-4c4f-80f4-be88a1943b0a" />
-    <img alt="Logo" src="https://github.com/user-attachments/assets/99cb6303-64e4-4bed-bf3f-35735353e6de" />
-</picture>
-
 ![](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![](https://img.shields.io/badge/Typescript-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![](https://badges.aleen42.com/src/vitejs.svg)
@@ -15,7 +9,7 @@
 
 <a href="https://discord.gg/4ERQ6jgV9a" target="_blank"><img src="https://discord.com/api/guilds/1263404974830915637/widget.png"/></a>
 
-> This boilerplate
+> GSC Bulk Remover - Chrome Extension for Google Search Console
 > has [Legacy version](https://github.com/devhau/gsc-bulk-remover/tree/legacy)
 
 </div>
@@ -56,8 +50,7 @@
 
 ## Intro
 
-This boilerplate helps you create Chrome/Firefox extensions using React and Typescript. It improves
-the build speed and development experience by using Vite and Turborepo.
+GSC Bulk Remover is a Chrome/Firefox extension that helps you bulk remove URLs from Google Search Console. Built with React, TypeScript, and modern web technologies for optimal performance and user experience.
 
 ## Features
 
@@ -79,8 +72,8 @@ the build speed and development experience by using Vite and Turborepo.
 2. Ensure your node version is >= than in `.nvmrc` file, recommend to use [nvm](https://github.com/nvm-sh/nvm?tab=readme-ov-file#intro)
 3. Edit `/packages/i18n/locales/`{your locale(s)}/`messages.json`
 4. In the objects `extensionDescription` and `extensionName`, change the `message` fields (leave `description` alone)
-5. Install pnpm globally: `npm install -g pnpm`
-6. Run `pnpm install`
+5. Install bun globally: `npm install -g bun`
+6. Run `bun install`
 7. Check if you have that configuration in your IDE/Editor:
     - <b>VS Code</b>:
         - Installed [ESLint extension](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
@@ -94,7 +87,7 @@ the build speed and development experience by using Vite and Turborepo.
       - Configured [Prettier](https://prettier.io/docs/en/webstorm.html)
       - Optional, but useful `File | Settings | Tools | Actions on Save`\
       -> `Optimize imports` and `Reformat code`
-8. Run `pnpm update-version <version>` for change the `version` to the desired version of your extension.
+8. Run `bun update-version <version>` for change the `version` to the desired version of your extension.
 
 > [!IMPORTANT]
 > On Windows, make sure you have WSL enabled and Linux distribution (e.g. Ubuntu) installed on WSL.
@@ -106,9 +99,9 @@ the build speed and development experience by using Vite and Turborepo.
 ### For Chrome: <a name="installation-chrome"></a>
 
 1. Run:
-    - Dev: `pnpm dev` (on Windows, you should run as administrator;
+    - Dev: `bun dev` (on Windows, you should run as administrator;
       see [issue#456](https://github.com/devhau/gsc-bulk-remover/issues/456))
-    - Prod: `pnpm build`
+    - Prod: `bun build`
 2. Open in browser - `chrome://extensions`
 3. Check - <kbd>Developer mode</kbd>
 4. Click - <kbd>Load unpacked</kbd> in the upper left corner
@@ -117,8 +110,8 @@ the build speed and development experience by using Vite and Turborepo.
 ### For Firefox: <a name="installation-firefox"></a>
 
 1. Run:
-    - Dev: `pnpm dev:firefox`
-    - Prod: `pnpm build:firefox`
+    - Dev: `bun dev:firefox`
+    - Prod: `bun build:firefox`
 2. Open in browser - `about:debugging#/runtime/this-firefox`
 3. Click - <kbd>Load Temporary Add-on...</kbd> in the upper right corner
 4. Select the `./dist/manifest.json` file from the boilerplate project
@@ -131,11 +124,11 @@ the build speed and development experience by using Vite and Turborepo.
 
 ### For root: <a name="install-dependency-for-root"></a>
 
-1. Run `pnpm i <package> -w`
+1. Run `bun add <package> -w`
 
 ### For module: <a name="install-dependency-for-module"></a>
 
-1. Run `pnpm i <package> -F <module name>`
+1. Run `bun add <package> --filter <module name>`
 
 `package` - Name of the package you want to install e.g. `nodemon` \
 `module-name` - You can find it inside each `package.json` under the key `name`, e.g. `@extension/content-script`, you
