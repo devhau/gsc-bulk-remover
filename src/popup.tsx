@@ -7,13 +7,79 @@ const Popup = () => {
   const [waitTime, setWaitTime] = useState(30);
   const [chunkSize, setChunkSize] = useState(100);
   const [isProcessing, setIsProcessing] = useState(false);
+  // Add message listener for URL removal updates
+  React.useEffect(() => {
+    const handleUrlRemoved = (message: any) => {
+      if (message.action === 'urlRemoved') {
+        // Update the links state to reflect the removed URL
+        setLinks(message.remainingUrls);
+      }
+    };
+
+    // Add listener for messages from content script
+    chrome.runtime.onMessage.addListener(handleUrlRemoved);
+
+    // Clean up listener on component unmount
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleUrlRemoved);
+    };
+  }, []);
+  // Load data from storage when popup opens
+  React.useEffect(() => {
+    const loadStoredData = async () => {
+      try {
+        const data = await new Promise<any>((resolve) => {
+          chrome.storage.local.get([
+            'URLs',
+            'waitTime', 
+            'chunkSize',
+          ], (result) => {
+            resolve(result);
+          });
+        });
+
+        // Load stored values into state
+        if (data.URLs) {
+          setLinks(data.URLs);
+        }
+        if (data.waitTime) {
+          setWaitTime(data.waitTime);
+        }
+        if (data.chunkSize) {
+          setChunkSize(data.chunkSize);
+        }
+
+        console.log('Loaded data from storage:', data);
+      } catch (error) {
+        console.error('Error loading data from storage:', error);
+      }
+    };
+
+    loadStoredData();
+  }, []);
+
+  // Save data to storage whenever input values change
+  React.useEffect(() => {
+    const saveToStorage = () => {
+      chrome.storage.local.set({
+        URLs: links,
+        waitTime: waitTime,
+        chunkSize: chunkSize
+      });
+    };
+
+    // Only save if we have some data (avoid saving empty initial state)
+    if (links || waitTime !== 30 || chunkSize !== 100) {
+      saveToStorage();
+    }
+  }, [links, waitTime, chunkSize]);
 
   const handleStart = async () => {
     if (isProcessing) {
       return;
     }
     
-    const urlList = links.split('\n').filter(url => url.trim().split(',')[0]);
+    const urlList = links.split('\n').filter(url => url.trim()).map(url => url.split(',')[0].trim()).filter(url => url.length > 0);
     if (urlList.length === 0) {
       alert("Please enter valid URLs");
       return;
@@ -158,6 +224,8 @@ const Popup = () => {
               placeholder="https://example.com/page1\nhttps://example.com/page2\n...\n\nPaste your URLs here, one per line (max 1000)"
               value={links}
               onChange={(e) => setLinks(e.target.value)}
+              rows={10}
+              disabled={isProcessing}
             />
             <div className="url-counter">
               {links.split('\n').filter(url => url.trim()).length}/1000
