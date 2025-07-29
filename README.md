@@ -1,15 +1,4 @@
 # GSC Bulk Remover
-
-<div align="center">
-
-![](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
-![](https://img.shields.io/badge/Typescript-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![](https://badges.aleen42.com/src/vitejs.svg)
-
-![GitHub action badge](https://github.com/devhau/gsc-bulk-remover/actions/workflows/build-zip.yml/badge.svg)
-![GitHub action badge](https://github.com/devhau/gsc-bulk-remover/actions/workflows/lint.yml/badge.svg)
-</div>
-
 GSC Bulk Remover is a browser extension designed to streamline the process of removing multiple URLs from Google Search Console (GSC). This tool simplifies the tedious task of submitting removal requests for outdated or unwanted links, saving time and effort for webmasters and SEO professionals.
 Features
 
