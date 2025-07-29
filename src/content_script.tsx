@@ -80,15 +80,13 @@ function linksResubmission() {
                 await submissionNextButton();
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
-                const submitSuccess = await submitRequest();
+                await submitRequest();
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 await closeButton();
+                await new Promise(resolve => setTimeout(resolve, 500));
                 
-                // If submission was successful, remove the URL from storage
-                if (submitSuccess) {
-                    await removeProcessedUrl(urlList[index]);
-                    currentProcessedCount++;
-                }
+                await removeProcessedUrl(urlList[index]);
+                currentProcessedCount++;
                 
                 await new Promise<void>(resolve => 
                     chrome.storage.local.set({
@@ -154,14 +152,8 @@ function linksResubmission() {
           clickButton(["tiếp", "tiếp theo", "next"]);
         }
 
-        async function submitRequest(): Promise<boolean> {
-          try {
-            clickButton(["Gửi yêu cầu","Submit request"]);
-            return true; // Assume success if no error thrown
-          } catch (error) {
-            console.error("Failed to submit request:", error);
-            return false;
-          }
+        async function submitRequest() {
+          clickButton(["Gửi yêu cầu","Submit request"]);
         }
         async function closeButton() {
           clickButton(["Đóng","Close"]);
