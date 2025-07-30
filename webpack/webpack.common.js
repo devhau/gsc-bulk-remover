@@ -40,7 +40,13 @@ module.exports = {
     },
     plugins: [
         new CopyPlugin({
-            patterns: [{ from: ".", to: "../", context: "public" }],
+            patterns: [
+                { from: ".", to: "../", context: "public" },
+                { 
+                  from: path.join(__dirname, '../src/website-popup.css'), 
+                  to: path.join(__dirname, '../dist/website-popup.css') 
+                }
+            ],
             options: {},
         }),
     ],

@@ -1,9 +1,102 @@
 console.log("GSC Bulk Remover content script loaded");
 
+// Variables to track popup state
+let popup: HTMLElement | null = null;
+let currentChunkIndexElement: HTMLElement | null = null;
+let totalChunksElement: HTMLElement | null = null;
+let currentIndexElement: HTMLElement | null = null;
+
+// Function to create and show the popup
+function createAndShowPopup() {
+  if (popup) return; // Popup already exists
+  
+  // Inject our CSS
+  const style = document.createElement('link');
+  style.href = chrome.runtime.getURL('website-popup.css');
+  style.type = 'text/css';
+  style.rel = 'stylesheet';
+  (document.head || document.documentElement).appendChild(style);
+
+  // Create and inject the popup HTML with chunk information only
+  const popupHTML = `
+    <div class="gsc-remover-popup" id="gsc-remover-popup">
+      <div class="gsc-remover-popup-header">
+        <h3 class="gsc-remover-popup-title">GSC Bulk Remover - Progress</h3>
+        <button class="gsc-remover-popup-close" id="gsc-remover-close">×</button>
+      </div>
+      <div class="gsc-remover-popup-body">
+        <div class="chunk-info">
+          <div class="chunk-item">
+            <label>Current Chunk:</label>
+            <span id="current-chunk-index">0</span>
+          </div>
+          <div class="chunk-item">
+            <label>Total Chunks:</label>
+            <span id="total-chunks">0</span>
+          </div>
+          <div class="chunk-item">
+            <label>Current Index:</label>
+            <span id="current-index">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Add the popup to the page
+  const popupContainer = document.createElement('div');
+  popupContainer.innerHTML = popupHTML;
+  document.body.appendChild(popupContainer);
+  
+  // Get DOM elements
+  popup = document.getElementById('gsc-remover-popup');
+  const closeButton = document.getElementById('gsc-remover-close');
+  currentChunkIndexElement = document.getElementById('current-chunk-index');
+  totalChunksElement = document.getElementById('total-chunks');
+  currentIndexElement = document.getElementById('current-index');
+
+  // Close button handler
+  closeButton?.addEventListener('click', () => {
+    popup?.remove();
+    popup = null;
+  });
+}
+
+
+
+// Define interface for chunk state
+interface ChunkState {
+  currentChunkIndex: number;
+  totalChunks: number;
+  index: number;
+  totalUrls: number;
+}
+
+// Update UI based on chunk state
+function updateChunkUI(state: ChunkState) {
+  if (!popup) return;
+  
+  if (currentChunkIndexElement) {
+    currentChunkIndexElement.textContent = (state.currentChunkIndex + 1).toString();
+  }
+  
+  if (totalChunksElement) {
+    totalChunksElement.textContent = state.totalChunks.toString();
+  }
+  
+  if (currentIndexElement) {
+    currentIndexElement.textContent = (state.index + 1).toString()+"/"+(state.totalUrls).toString();
+  }
+}
+let processUrls: string[] = [];
+
+// No need for message listeners since we handle chunk updates directly
+
 // Add a listener for messages from the popup
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
     if (message.action === "startProcessing") {
         console.log("Start processing requested", message.data);
+        processUrls=[];
         linksResubmission();
         sendResponse({ status: "Processing started" });
         return true;
@@ -57,16 +150,34 @@ function linksResubmission() {
 
         console.log(`Processing chunk ${chunkIndex + 1} of ${chunksTotal} (URLs ${startIndex + 1} to ${endIndex} of ${allUrls.length})`);
 
+        // Create and show the popup when process starts
+        createAndShowPopup();
+        
+        // Update initial chunk information
+        updateChunkUI({
+            currentChunkIndex: chunkIndex,
+            totalChunks: chunksTotal,
+            index: 0,
+            totalUrls: urlListTrimmed.length
+        });
+
         async function removeUrlJs(index: number, urlList: string[]) {
             if (index >= urlList.length) {
                 console.log("Completed processing all URLs in current chunk");
-                await new Promise<void>(resolve => 
-                  chrome.storage.local.set({
-                    currentChunkIndex: chunkIndex + 1,
-                    lastUpdateTime: Date.now()
-                  }, () => resolve())
-              );
-              setTimeout(() => linksResubmission(), 1500);
+                if(chunkIndex + 1< chunksTotal){
+                    await new Promise<void>(resolve => 
+                      chrome.storage.local.set({
+                        currentChunkIndex: chunkIndex + 1,
+                        lastUpdateTime: Date.now()
+                      }, () => resolve())
+                  );
+                  setTimeout(() => linksResubmission(), 1500);
+                  return;
+                }
+                if(currentIndexElement){
+                  currentIndexElement.textContent ="Hoàn thành";
+                }
+              
                 return ;
             }
 
@@ -77,13 +188,19 @@ function linksResubmission() {
             }
 
             try {
+               // Update chunk information in the website popup
+               updateChunkUI({
+                currentChunkIndex: chunkIndex,
+                totalChunks: chunksTotal,
+                index: index + 1,
+               totalUrls: urlList.length
+            });
                 await clickButton(["Yêu cầu mới","New request"]);
                 await urlToSubmissionBar(urlList, index);
                 await new Promise(resolve => setTimeout(resolve, 500));
                 await clickButton(["tiếp", "tiếp theo", "next"],500);
                 await clickButton(["Gửi yêu cầu","Submit request"],2000);
                 await clickButton(["Đóng","Close"],500);
-                await removeProcessedUrl(urlList[index]);
                 
                 await new Promise<void>(resolve => 
                     chrome.storage.local.set({
@@ -91,6 +208,8 @@ function linksResubmission() {
                         lastUpdateTime: Date.now()
                     }, () => resolve())
                 );
+
+               
 
                 setTimeout(() => removeUrlJs(index + 1, urlList), 1500);
             } catch (error) {
@@ -128,43 +247,6 @@ function linksResubmission() {
             throw new Error(" Button not found");
           }
           await new Promise(resolve => setTimeout(resolve, timer));
-        }
-        
-        async function removeProcessedUrl(processedUrl: string) {
-          try {
-            // Get current URLs from storage
-            const data = await new Promise<any>(resolve => 
-              chrome.storage.local.get(['URLs'], resolve)
-            );
-            
-            if (data.URLs) {
-              // Split URLs into array, remove the processed URL, and rejoin
-              const urlArray = data.URLs.split('\n')
-                .map((url: string) => url.trim())
-                .filter((url: string) => url !== processedUrl && url.length > 0);
-              
-              const updatedUrls = urlArray.join('\n');
-              
-              // Save updated URLs back to storage
-              await new Promise<void>(resolve => 
-                chrome.storage.local.set({ URLs: updatedUrls }, () => resolve())
-              );
-              
-              console.log(`Removed processed URL: ${processedUrl}`);
-              console.log(`Remaining URLs: ${urlArray.length}`);
-              // Send message to popup to update UI
-            
-               await new Promise<void>(resolve => 
-                chrome.runtime.sendMessage({
-                  action: 'urlRemoved',
-                  remainingUrls: updatedUrls,
-                  removedUrl: processedUrl
-              },() => resolve())
-              );
-            }
-          } catch (error) {
-            console.error('Error removing processed URL:', error);
-          }
         }
         function getMessage(key: string, ...args: any[]): string {
             const messages: any = {

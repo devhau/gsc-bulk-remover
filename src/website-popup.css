@@ -1,0 +1,149 @@
+.gsc-remover-popup {
+  position: fixed;
+  width: 250px;
+  bottom: 0;
+  right: 0;
+  background: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  border-left: 1px solid #dee2e6;
+  border-radius: 12px 0 0 0 ;
+
+  padding: 15px 20px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 10000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+.gsc-remover-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.gsc-remover-popup-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a73e8;
+  margin: 0;
+}
+
+.gsc-remover-popup-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #5f6368;
+  padding: 0;
+  line-height: 1;
+}
+
+.gsc-remover-popup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gsc-remover-popup-message {
+  font-size: 14px;
+  color: #3c4043;
+  margin: 0;
+}
+
+.gsc-remover-popup-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.gsc-remover-popup-button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s;
+}
+
+.gsc-remover-popup-button.primary {
+  background-color: #1a73e8;
+  color: white;
+}
+
+.gsc-remover-popup-button.primary:hover {
+  background-color: #1557b0;
+}
+
+.gsc-remover-popup-button.secondary {
+  background-color: #f1f3f4;
+  color: #3c4043;
+}
+
+.gsc-remover-popup-button.secondary:hover {
+  background-color: #e8eaed;
+}
+
+.gsc-remover-popup-progress {
+  margin-top: 8px;
+  display: none;
+}
+
+.gsc-remover-popup-progress.active {
+  display: block;
+}
+
+.gsc-remover-popup-progress-bar {
+  height: 4px;
+  background-color: #e8eaed;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.gsc-remover-popup-progress-fill {
+  height: 100%;
+  background-color: #1a73e8;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.gsc-remover-popup-status {
+  font-size: 12px;
+  color: #5f6368;
+  text-align: right;
+}
+
+.chunk-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e8eaed;
+}
+
+.chunk-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.chunk-item label {
+  font-weight: 500;
+  color: #3c4043;
+}
+
+.chunk-item span {
+  font-weight: 600;
+  color: #1a73e8;
+  background-color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #dadce0;
+  min-width: 30px;
+  text-align: center;
+}
