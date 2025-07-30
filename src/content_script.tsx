@@ -164,7 +164,7 @@ function linksResubmission() {
         async function removeUrlJs(index: number, urlList: string[]) {
             if (index >= urlList.length) {
                 console.log("Completed processing all URLs in current chunk");
-                if(chunkIndex + 1< chunksTotal){
+                if(chunkIndex< chunksTotal){
                     await new Promise<void>(resolve => 
                       chrome.storage.local.set({
                         currentChunkIndex: chunkIndex + 1,
