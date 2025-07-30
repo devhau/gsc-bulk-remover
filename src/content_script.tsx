@@ -24,7 +24,6 @@ function linksResubmission() {
 
     chrome.storage.local.get([
         "URLs",
-        "temporaryRemoval",
         "totalURLCount",
         "processedURLCount",
         "stopRequested"
@@ -34,15 +33,14 @@ function linksResubmission() {
             return;
         }
 
-        const urls = data.URLs;
-        const isTemporary = data.temporaryRemoval !== undefined ? data.temporaryRemoval : true;
+        const urls = data.URLs
 
         if (!urls || !urls.includes("http")) {
             alert(getMessage("noValidUrls"));
             return;
         }
 
-        const allUrls = urls.split("\n").map((url: string) => url.trim()).map((url: string) => url.split(',')[0]).filter((url: string) => url.length > 2 && url.startsWith("http"));
+        const allUrls = urls.split("\n");
         if (allUrls.length === 0) {
             alert(getMessage("noValidUrls"));
             return;
@@ -71,20 +69,12 @@ function linksResubmission() {
             }
 
             try {
-                await clickNewRequestButton();
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
+                await clickButton(["Yêu cầu mới","New request"]);
                 await urlToSubmissionBar(urlList, index);
                 await new Promise(resolve => setTimeout(resolve, 500));
-                
-                await submissionNextButton();
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                await submitRequest();
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                await closeButton();
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
+                await clickButton(["tiếp", "tiếp theo", "next"],500);
+                await clickButton(["Gửi yêu cầu","Submit request"],2000);
+                await clickButton(["Đóng","Close"],500);
                 await removeProcessedUrl(urlList[index]);
                 currentProcessedCount++;
                 
@@ -101,24 +91,11 @@ function linksResubmission() {
                 setTimeout(() => removeUrlJs(index + 1, urlList), 1500);
             }
         }
-        async function clickNewRequestButton() {
-          clickButton(["Yêu cầu mới","New request"])
-        }
 
         async function urlToSubmissionBar(urlList: string[], index: number) {
-            const selectors = [
-                '.Ufn6O.PPB5Hf input[type="text"]',
-            ];
-            
-            let urlInput: HTMLInputElement | HTMLTextAreaElement | null = null;
-            for (const selector of selectors) {
-                const elements = document.querySelectorAll(selector);
-                urlInput = elements[0] as HTMLInputElement | HTMLTextAreaElement;
-                if (urlInput) break;
-            }
-
+          const urlInput = document.querySelector('.Ufn6O.PPB5Hf input[type="text"]');
             if (urlInput) {
-                urlInput.value = urlList[index];
+                (urlInput as HTMLInputElement).value = urlList[index];
                 const inputEvent = new Event('input', { bubbles: true });
                 urlInput.dispatchEvent(inputEvent);
                 console.log(`Entered URL: ${urlList[index]}`);
@@ -126,7 +103,7 @@ function linksResubmission() {
                 throw new Error("URL input field not found");
             }
         }
-        function getButtonByText(text: string[], selector: string='.CwaK9 .RveJvd.snByac') {
+        async function clickButton(text: string[],timer:number=3000, selector: string='.CwaK9 .RveJvd.snByac'){
           const button = Array.from(document.querySelectorAll(selector)).find((button: any) => {
             const buttonText = button.textContent.trim().toLowerCase();
             for(const txt of text){
@@ -136,10 +113,6 @@ function linksResubmission() {
             }
             return false;
           })
-          return button;
-        }
-        function clickButton(text: string[], selector: string='.CwaK9 .RveJvd.snByac'){
-          const button = getButtonByText(text, selector);
           if (button) {
             const clickEvent = new Event('click', { bubbles: true });
             button.dispatchEvent(clickEvent);
@@ -147,16 +120,7 @@ function linksResubmission() {
             console.log(text);
             throw new Error(" Button not found");
           }
-        }
-        async function submissionNextButton() {
-          clickButton(["tiếp", "tiếp theo", "next"]);
-        }
-
-        async function submitRequest() {
-          clickButton(["Gửi yêu cầu","Submit request"]);
-        }
-        async function closeButton() {
-          clickButton(["Đóng","Close"]);
+          await new Promise(resolve => setTimeout(resolve, timer));
         }
         
         async function removeProcessedUrl(processedUrl: string) {
@@ -181,12 +145,15 @@ function linksResubmission() {
               
               console.log(`Removed processed URL: ${processedUrl}`);
               console.log(`Remaining URLs: ${urlArray.length}`);
-                // Send message to popup to update UI
+              // Send message to popup to update UI
+            
+               await new Promise<void>(resolve => 
                 chrome.runtime.sendMessage({
-                    action: 'urlRemoved',
-                    remainingUrls: updatedUrls,
-                    removedUrl: processedUrl
-                });
+                  action: 'urlRemoved',
+                  remainingUrls: updatedUrls,
+                  removedUrl: processedUrl
+              },() => resolve())
+              );
             }
           } catch (error) {
             console.error('Error removing processed URL:', error);
