@@ -25,8 +25,10 @@ function linksResubmission() {
     chrome.storage.local.get([
         "URLs",
         "totalURLCount",
-        "processedURLCount",
-        "stopRequested"
+        "stopRequested",
+        "currentChunkIndex",
+        "totalChunks",
+        "index",
     ], function(data) {
         if (data.stopRequested) {
             console.log("Process was stopped by user. Exiting.");
@@ -52,14 +54,20 @@ function linksResubmission() {
         const endIndex = Math.min(startIndex + 100, allUrls.length);
         const urlListTrimmed = allUrls.slice(startIndex, endIndex);
 
-        let currentProcessedCount = data.processedURLCount || 0;
 
         console.log(`Processing chunk ${chunkIndex + 1} of ${chunksTotal} (URLs ${startIndex + 1} to ${endIndex} of ${allUrls.length})`);
 
         async function removeUrlJs(index: number, urlList: string[]) {
             if (index >= urlList.length) {
                 console.log("Completed processing all URLs in current chunk");
-                return;
+                await new Promise<void>(resolve => 
+                  chrome.storage.local.set({
+                    currentChunkIndex: chunkIndex + 1,
+                    lastUpdateTime: Date.now()
+                  }, () => resolve())
+              );
+              setTimeout(() => linksResubmission(), 1500);
+                return ;
             }
 
             const stopData = await new Promise<any>(resolve => chrome.storage.local.get(['stopRequested'], resolve));
@@ -76,11 +84,10 @@ function linksResubmission() {
                 await clickButton(["Gửi yêu cầu","Submit request"],2000);
                 await clickButton(["Đóng","Close"],500);
                 await removeProcessedUrl(urlList[index]);
-                currentProcessedCount++;
                 
                 await new Promise<void>(resolve => 
                     chrome.storage.local.set({
-                        processedURLCount: currentProcessedCount,
+                        index: index + 1,
                         lastUpdateTime: Date.now()
                     }, () => resolve())
                 );
