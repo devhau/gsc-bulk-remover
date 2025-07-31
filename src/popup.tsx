@@ -58,7 +58,7 @@ const Popup = () => {
       }
       timerUpdatePopupUI = setInterval(() => {
         loadStoredData();
-      }, 2000);
+      }, 900);
     } else {
       clearInterval(timerUpdatePopupUI);
       console.log("Stop update popup UI");
