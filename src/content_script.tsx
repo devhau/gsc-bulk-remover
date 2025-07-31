@@ -205,12 +205,18 @@ async function linksResubmission(
       console.error("Error processing URL:", error);
     }
   }
-  if (chunkIndex >= totalChunks || (await isStopProcess())) {
+  if (await isStopProcess()) {
+    console.log("Process stopped by user during URL processing.");
     if (currentIndexElement) {
-      currentIndexElement.textContent =
-        "All chunks processed or process stopped by user.";
+      currentIndexElement.textContent = "Process stopped by user.";
     }
-    console.log("All chunks processed or process stopped by user.");
+    return;
+  }
+  if (chunkIndex >= totalChunks) {
+    if (currentIndexElement) {
+      currentIndexElement.textContent = "All chunks processed";
+    }
+    console.log("All chunks processed");
     await setLocalData({
       isProcessing: false,
       URLs: allUrls.filter((url) => !doneUrls.includes(url)).join("\n"),
