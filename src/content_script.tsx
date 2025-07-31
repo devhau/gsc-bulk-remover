@@ -9,12 +9,12 @@ let currentIndexElement: HTMLElement | null = null;
 // Function to create and show the popup
 function createAndShowPopup() {
   if (popup) return; // Popup already exists
-  
+
   // Inject our CSS
-  const style = document.createElement('link');
-  style.href = chrome.runtime.getURL('website-popup.css');
-  style.type = 'text/css';
-  style.rel = 'stylesheet';
+  const style = document.createElement("link");
+  style.href = chrome.runtime.getURL("website-popup.css");
+  style.type = "text/css";
+  style.rel = "stylesheet";
   (document.head || document.documentElement).appendChild(style);
 
   // Create and inject the popup HTML with chunk information only
@@ -44,25 +44,23 @@ function createAndShowPopup() {
   `;
 
   // Add the popup to the page
-  const popupContainer = document.createElement('div');
+  const popupContainer = document.createElement("div");
   popupContainer.innerHTML = popupHTML;
   document.body.appendChild(popupContainer);
-  
+
   // Get DOM elements
-  popup = document.getElementById('gsc-remover-popup');
-  const closeButton = document.getElementById('gsc-remover-close');
-  currentChunkIndexElement = document.getElementById('current-chunk-index');
-  totalChunksElement = document.getElementById('total-chunks');
-  currentIndexElement = document.getElementById('current-index');
+  popup = document.getElementById("gsc-remover-popup");
+  const closeButton = document.getElementById("gsc-remover-close");
+  currentChunkIndexElement = document.getElementById("current-chunk-index");
+  totalChunksElement = document.getElementById("total-chunks");
+  currentIndexElement = document.getElementById("current-index");
 
   // Close button handler
-  closeButton?.addEventListener('click', () => {
+  closeButton?.addEventListener("click", () => {
     popup?.remove();
     popup = null;
   });
 }
-
-
 
 // Define interface for chunk state
 interface ChunkState {
@@ -75,195 +73,199 @@ interface ChunkState {
 // Update UI based on chunk state
 function updateChunkUI(state: ChunkState) {
   if (!popup) return;
-  
+
   if (currentChunkIndexElement) {
-    currentChunkIndexElement.textContent = (state.currentChunkIndex + 1).toString();
+    currentChunkIndexElement.textContent = (
+      state.currentChunkIndex + 1
+    ).toString();
   }
-  
+
   if (totalChunksElement) {
     totalChunksElement.textContent = state.totalChunks.toString();
   }
-  
+
   if (currentIndexElement) {
-    currentIndexElement.textContent = (state.index + 1).toString()+"/"+(state.totalUrls).toString();
+    currentIndexElement.textContent =
+      (state.index + 1).toString() + "/" + state.totalUrls.toString();
   }
 }
-let processUrls: string[] = [];
 
 // No need for message listeners since we handle chunk updates directly
 
+const setLocalData = async (data: any) => {
+  await new Promise<void>((resolve) => {
+    chrome.storage.local.set(
+      {
+        ...data,
+      },
+      () => {
+        resolve();
+      }
+    );
+  });
+};
 // Add a listener for messages from the popup
-chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-    if (message.action === "startProcessing") {
-        console.log("Start processing requested", message.data);
-        processUrls=[];
-        linksResubmission();
-        sendResponse({ status: "Processing started" });
-        return true;
+chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+  if (message.action === "startProcessing") {
+    try {
+      console.log("Start processing requested", message.data);
+      startProcess(message.data);
+      sendResponse({ status: "Processing started" });
+    } catch (error) {
+      console.error("Error starting process:", error);
+      sendResponse({ status: "Error starting process" });
     }
-    
-    if (message.action === "stopProcessing") {
-        console.log("Stop processing requested");
-        chrome.storage.local.set({ 'stopRequested': true }, () => {
-            sendResponse({ status: "Stopping process" });
-        });
-        return true;
-    }
-});
+    return true;
+  }
 
-// Main function to process URLs
-function linksResubmission() {
-    console.log("Starting URL removal process");
-
-    chrome.storage.local.get([
-        "URLs",
-        "totalURLCount",
-        "stopRequested",
-        "currentChunkIndex",
-        "totalChunks",
-        "index",
-    ], function(data) {
-        if (data.stopRequested) {
-            console.log("Process was stopped by user. Exiting.");
-            return;
-        }
-
-        const urls = data.URLs
-
-        if (!urls || !urls.includes("http")) {
-            alert(getMessage("noValidUrls"));
-            return;
-        }
-
-        const allUrls = urls.split("\n");
-        if (allUrls.length === 0) {
-            alert(getMessage("noValidUrls"));
-            return;
-        }
-
-        const chunkIndex = data.currentChunkIndex || 0;
-        const chunksTotal = data.totalChunks || Math.ceil(allUrls.length / 100);
-        const startIndex = chunkIndex * 100;
-        const endIndex = Math.min(startIndex + 100, allUrls.length);
-        const urlListTrimmed = allUrls.slice(startIndex, endIndex);
-
-
-        console.log(`Processing chunk ${chunkIndex + 1} of ${chunksTotal} (URLs ${startIndex + 1} to ${endIndex} of ${allUrls.length})`);
-
-        // Create and show the popup when process starts
-        createAndShowPopup();
-        
-        // Update initial chunk information
-        updateChunkUI({
-            currentChunkIndex: chunkIndex,
-            totalChunks: chunksTotal,
-            index: 0,
-            totalUrls: urlListTrimmed.length
-        });
-
-        async function removeUrlJs(index: number, urlList: string[]) {
-            if (index >= urlList.length) {
-                console.log("Completed processing all URLs in current chunk");
-                if(chunkIndex< chunksTotal){
-                    await new Promise<void>(resolve => 
-                      chrome.storage.local.set({
-                        currentChunkIndex: chunkIndex + 1,
-                        lastUpdateTime: Date.now()
-                      }, () => resolve())
-                  );
-                  setTimeout(() => linksResubmission(), 1500);
-                  return;
-                }
-                if(currentIndexElement){
-                  currentIndexElement.textContent ="Hoàn thành";
-                }
-              
-                return ;
-            }
-
-            const stopData = await new Promise<any>(resolve => chrome.storage.local.get(['stopRequested'], resolve));
-            if (stopData.stopRequested) {
-                console.log("Process stopped by user during URL processing.");
-                return;
-            }
-
-            try {
-               // Update chunk information in the website popup
-               updateChunkUI({
-                currentChunkIndex: chunkIndex,
-                totalChunks: chunksTotal,
-                index: index + 1,
-               totalUrls: urlList.length
-            });
-                await clickButton(["Yêu cầu mới","New request"]);
-                await urlToSubmissionBar(urlList, index);
-                await new Promise(resolve => setTimeout(resolve, 500));
-                await clickButton(["tiếp", "tiếp theo", "next"],500);
-                await clickButton(["Gửi yêu cầu","Submit request"],2000);
-                await clickButton(["Đóng","Close"],500);
-                
-                await new Promise<void>(resolve => 
-                    chrome.storage.local.set({
-                        index: index + 1,
-                        lastUpdateTime: Date.now()
-                    }, () => resolve())
-                );
-
-               
-
-                setTimeout(() => removeUrlJs(index + 1, urlList), 1500);
-            } catch (error) {
-                console.error(`Error processing URL ${urlList[index]}:`, error);
-                setTimeout(() => removeUrlJs(index + 1, urlList), 1500);
-            }
-        }
-
-        async function urlToSubmissionBar(urlList: string[], index: number) {
-          const urlInput = document.querySelector('.Ufn6O.PPB5Hf input[type="text"]');
-            if (urlInput) {
-                (urlInput as HTMLInputElement).value = urlList[index];
-                const inputEvent = new Event('input', { bubbles: true });
-                urlInput.dispatchEvent(inputEvent);
-                console.log(`Entered URL: ${urlList[index]}`);
-            } else {
-                throw new Error("URL input field not found");
-            }
-        }
-        async function clickButton(text: string[],timer:number=3000, selector: string='.CwaK9 .RveJvd.snByac'){
-          const button = Array.from(document.querySelectorAll(selector)).find((button: any) => {
-            const buttonText = button.textContent.trim().toLowerCase();
-            for(const txt of text){
-              if(buttonText===txt.trim().toLocaleLowerCase()){
-                return true;
-              }
-            }
-            return false;
-          })
-          if (button) {
-            const clickEvent = new Event('click', { bubbles: true });
-            button.dispatchEvent(clickEvent);
-          } else {
-            console.log(text);
-            throw new Error(" Button not found");
-          }
-          await new Promise(resolve => setTimeout(resolve, timer));
-        }
-        function getMessage(key: string, ...args: any[]): string {
-            const messages: any = {
-                vi: {
-                    noValidUrls: "Vui lòng nhập ít nhất một URL hợp lệ.",
-                    allProcessed: `Tất cả URL đã được xử lý! Tổng số đã gửi: ${args[0]}, Tổng số thất bại: ${args[1]}`
-                },
-                en: {
-                    noValidUrls: "Please insert at least one valid URL.",
-                    allProcessed: `All URLs processed! Total submitted: ${args[0]}, Total failed: ${args[1]}`
-                }
-            };
-            const lang = document.documentElement.lang.includes('vi') ? 'vi' : 'en';
-            return messages[lang][key] || messages.en[key];
-        }
-
-        // Start processing
-        removeUrlJs(0, urlListTrimmed);
+  if (message.action === "stopProcessing") {
+    console.log("Stop processing requested");
+    chrome.storage.local.set({ stopRequested: true }, () => {
+      sendResponse({ status: "Stopping process" });
     });
+    return true;
+  }
+});
+async function isStopProcess() {
+  const stopData = await new Promise<any>((resolve) =>
+    chrome.storage.local.get(["stopRequested"], resolve)
+  );
+  if (stopData.stopRequested) {
+    console.log("Process stopped by user during URL processing.");
+    return true;
+  }
+  return false;
+}
+function startProcess(data: any) {
+  linksResubmission(data.urls, [], 0, data.chunkSize ?? 100, data.tabId);
+}
+// Main function to process URLs
+async function linksResubmission(
+  allUrls: string[],
+  doneUrls: string[] = [],
+  chunkIndex: number = 0,
+  chunkSize: number = 100,
+  tabId: number
+) {
+  console.log("Starting URL removal process");
+  if (allUrls.length === 0) {
+    alert(getMessage("noValidUrls"));
+    return;
+  }
+  if (await isStopProcess()) {
+    return; // Stop processing if requested
+  }
+  const startIndex = chunkIndex * chunkSize;
+  const endIndex = Math.min(startIndex + chunkSize, allUrls.length);
+  const totalChunks = Math.ceil(allUrls.length / chunkSize);
+  const urlListTrimmed = allUrls.slice(startIndex, endIndex);
+  const totalUrls = urlListTrimmed.length;
+  console.log(
+    `Processing chunk ${chunkIndex + 1} of ${totalChunks} (URLs ${
+      startIndex + 1
+    } to ${endIndex} of ${allUrls.length})`
+  );
+  createAndShowPopup();
+  updateChunkUI({
+    currentChunkIndex: chunkIndex,
+    totalChunks: totalChunks,
+    index: 0,
+    totalUrls: totalUrls,
+  });
+  for (let index = 0; index < totalUrls; index++) {
+    try {
+      console.log("Processing URL index", index + 1, "of", totalUrls);
+      if (await isStopProcess()) {
+        console.log("Process stopped by user during URL processing.");
+        if (currentIndexElement) {
+          currentIndexElement.textContent = "Process stopped by user.";
+        }
+        return;
+      }
+      updateChunkUI({
+        currentChunkIndex: chunkIndex,
+        totalChunks: totalChunks,
+        index: index + 1,
+        totalUrls: totalUrls,
+      });
+      await clickButton(["Yêu cầu mới", "New request"], 500);
+      await urlToSubmissionBar(urlListTrimmed[index]);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await clickButton(["tiếp", "tiếp theo", "next"], 500);
+      await clickButton(["Gửi yêu cầu", "Submit request"], 2000);
+      await clickButton(["Đóng", "Close"], 2000);
+
+      doneUrls.push(urlListTrimmed[index]);
+      await setLocalData({
+        index: index + 1,
+        lastUpdateTime: Date.now(),
+        URLs: allUrls.filter((url) => !doneUrls.includes(url)).join("\n"),
+      });
+    } catch (error) {
+      console.error("Error processing URL:", error);
+    }
+  }
+  if (chunkIndex >= totalChunks || (await isStopProcess())) {
+    if (currentIndexElement) {
+      currentIndexElement.textContent =
+        "All chunks processed or process stopped by user.";
+    }
+    console.log("All chunks processed or process stopped by user.");
+    await setLocalData({
+      isProcessing: false,
+      URLs: allUrls.filter((url) => !doneUrls.includes(url)).join("\n"),
+    });
+    return;
+  }
+  await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+  await linksResubmission(allUrls, doneUrls, chunkIndex + 1, chunkSize, tabId);
+}
+
+async function urlToSubmissionBar(url: string) {
+  const urlInput = document.querySelector('.Ufn6O.PPB5Hf input[type="text"]');
+  if (urlInput) {
+    (urlInput as HTMLInputElement).value = url;
+    const inputEvent = new Event("input", { bubbles: true });
+    urlInput.dispatchEvent(inputEvent);
+    console.log(`Entered URL: ${url}`);
+  } else {
+    throw new Error("URL input field not found");
+  }
+}
+async function clickButton(
+  text: string[],
+  timer: number = 3000,
+  selector: string = ".CwaK9 .RveJvd.snByac"
+) {
+  const button = Array.from(document.querySelectorAll(selector)).find(
+    (button: any) => {
+      const buttonText = button.textContent.trim().toLowerCase();
+      for (const txt of text) {
+        if (buttonText === txt.trim().toLocaleLowerCase()) {
+          return true;
+        }
+      }
+      return false;
+    }
+  );
+  if (button) {
+    const clickEvent = new Event("click", { bubbles: true });
+    button.dispatchEvent(clickEvent);
+  } else {
+    console.log(text);
+    console.log(" Button not found");
+  }
+  await new Promise((resolve) => setTimeout(resolve, timer));
+}
+function getMessage(key: string, ...args: any[]): string {
+  const messages: any = {
+    vi: {
+      noValidUrls: "Vui lòng nhập ít nhất một URL hợp lệ.",
+    },
+    en: {
+      noValidUrls: "Please insert at least one valid URL.",
+    },
+  };
+  const lang = document.documentElement.lang.includes("vi") ? "vi" : "en";
+  return messages[lang][key] || messages.en[key];
 }
