@@ -193,7 +193,7 @@ async function linksResubmission(
       await new Promise((resolve) => setTimeout(resolve, 500));
       await clickButton(["tiếp", "tiếp theo", "next"], 500);
       await clickButton(["Gửi yêu cầu", "Submit request"], 2000);
-      await clickButton(["Đóng", "Close"], 2000);
+      await clickButton(["Đóng", "Close"], 500);
 
       doneUrls.push(urlListTrimmed[index]);
       await setLocalData({

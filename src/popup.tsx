@@ -275,24 +275,6 @@ const Popup = () => {
 
         {/* Configuration Section */}
         <div className="config-section">
-          {/* Wait Time */}
-          <div className="config-item">
-            <label htmlFor="wait-time" className="config-label">
-              ⏱️ Wait Time (sec)
-            </label>
-            <input
-              type="number"
-              id="wait-time"
-              className="config-input"
-              min="10"
-              max="300"
-              value={waitTime}
-              step="1"
-              onChange={(e) => setWaitTime(parseInt(e.target.value) || 30)}
-            />
-            <small className="config-help">10-300 seconds between chunks</small>
-          </div>
-
           {/* Chunk Size */}
           <div className="config-item">
             <label htmlFor="chunk-size" className="config-label">
